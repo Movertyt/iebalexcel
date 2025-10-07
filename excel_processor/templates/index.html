@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEBALExcel</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+        }
+        
+        .container { 
+            background: rgba(26, 26, 26, 0.95); 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 { 
+            color: #ffffff; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .form-group { 
+            margin: 25px 0; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 10px; 
+            font-weight: 500;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+        
+        input, select { 
+            width: 100%; 
+            padding: 14px; 
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        input::file-selector-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover { 
+            background: linear-gradient(135deg, #0056b3, #004085);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+        
+        .progress { 
+            display: none; 
+            text-align: center; 
+            margin: 30px 0;
+            color: #b0b0b0;
+        }
+        
+        .result { 
+            display: none; 
+            margin-top: 25px; 
+            padding: 25px; 
+            background: #1e3a1e; 
+            border-radius: 10px;
+            border: 1px solid #2d5a2d;
+        }
+        
+        .error { 
+            display: none;
+            background: #3a1e1e; 
+            color: #ff6b6b; 
+            padding: 16px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            border: 1px solid #5a2d2d;
+        }
+        
+        #summary {
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            margin-top: 15px;
+        }
+        
+        .download-btn:hover {
+            background: linear-gradient(135deg, #1e7e34, #155724);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IEBALExcel</h1>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">📁 Выберите Excel файл:</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="order_type">📦 Тип заказа:</label>
+                <select id="order_type" name="order_type" required>
+                    <option value="в заказе">📦 В заказе</option>
+                    <option value="без заказа">📭 Без заказа</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="processing_type">🏭 Тип обработки МХ:</label>
+                <select id="processing_type" name="processing_type" required>
+                    <option value="sc">🏭 СЦ</option>
+                    <option value="potok">⚡ Поток</option>
+                </select>
+            </div>
+            
+            <button type="submit">🔄 Обработать файл</button>
+        </form>
+        
+        <div id="progress" class="progress">
+            <h3>⏳ Обрабатываю файл...</h3>
+            <p>Это может занять несколько минут для больших файлов</p>
+        </div>
+        
+        <div id="result" class="result">
+            <h3>✅ Обработка завершена!</h3>
+            <div id="summary"></div>
+            <a id="downloadLink" href="#" download>
+                <button class="download-btn">📥 Скачать обработанный файл</button>
+            </a>
+        </div>
+        
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const progress = document.getElementById('progress');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            
+            // Скрываем предыдущие результаты
+            progress.style.display = 'block';
+            result.style.display = 'none';
+            error.style.display = 'none';
+            
+            const formData = new FormData(this);
+            
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                progress.style.display = 'none';
+                
+                if (data.success) {
+                    document.getElementById('summary').innerHTML = data.summary;
+                    document.getElementById('downloadLink').href = data.download_url;
+                    result.style.display = 'block';
+                } else {
+                    error.textContent = data.error || 'Произошла ошибка';
+                    error.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                progress.style.display = 'none';
+                error.textContent = 'Ошибка сети: ' + err.message;
+                error.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
